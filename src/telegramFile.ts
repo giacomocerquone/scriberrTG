@@ -4,35 +4,6 @@ import os from "node:os";
 import path from "node:path";
 import axios from "axios";
 import type TelegramBot from "node-telegram-bot-api";
-import type { Message } from "node-telegram-bot-api";
-
-export function incomingFilenameOrFileId(message: Message, fileId: string): string {
-  const doc = message.document as { file_name?: string } | undefined;
-  if (doc?.file_name) return doc.file_name;
-
-  const audio = message.audio as { file_name?: string } | undefined;
-  if (audio?.file_name) return audio.file_name;
-
-  // For voice notes Telegram typically doesn't provide a filename, but Scriberr (or its multipart parser)
-  // may infer media type from the extension / part content-type.
-  if (message.voice) return `${fileId}.ogg`;
-
-  return fileId;
-}
-
-export function detectTelegramFileId(message: Message): string | null {
-  return message.voice?.file_id || message.audio?.file_id || message.document?.file_id || null;
-}
-
-export function looksLikeAudioDocument(message: Message): boolean {
-  const doc = message.document;
-  if (!doc) return false;
-  if (typeof doc.mime_type === "string" && doc.mime_type.startsWith("audio/")) return true;
-  const name = doc.file_name?.toLowerCase() ?? "";
-  return [".mp3", ".wav", ".m4a", ".aac", ".ogg", ".opus", ".flac", ".webm"].some((ext) =>
-    name.endsWith(ext),
-  );
-}
 
 export async function downloadTelegramFile(
   bot: TelegramBot,

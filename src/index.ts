@@ -10,12 +10,7 @@ import {
   TELEGRAM_BOT_TOKEN,
 } from "./env";
 import { ScriberrClient, type TranscriptionProfile } from "./scriberrClient";
-import {
-  detectTelegramFileId,
-  downloadTelegramFile,
-  incomingFilenameOrFileId,
-  looksLikeAudioDocument,
-} from "./telegramFile";
+import { downloadTelegramFile } from "./telegramFile";
 
 const scriberr = new ScriberrClient({
   hostUrl: SCRIBERR_HOST_URL,
@@ -55,27 +50,12 @@ async function getDefaultProfileCached(): Promise<TranscriptionProfile> {
   }
 }
 
-function isAnyAudioLikeMessage(msg: Message): boolean {
-  if (msg.voice || msg.audio) return true;
-  if (looksLikeAudioDocument(msg)) return true;
-  return false;
-}
-
-bot.on("message", async (msg: Message) => {
+async function processAudio(msg: Message, fileId: string, defaultExt: string): Promise<void> {
   const chatId = msg.chat.id;
   const messageId = msg.message_id;
 
-  console.log("message", msg);
-
-  const file = await bot.getFile(msg.voice?.file_id ?? "");
-  console.log(file);
-
-  if (!isAnyAudioLikeMessage(msg)) return;
-
-  const fileId = detectTelegramFileId(msg);
-  if (!fileId) return;
-
-  const filename = incomingFilenameOrFileId(msg, fileId);
+  const audioName = (msg as unknown as { audio?: { file_name?: string } }).audio?.file_name;
+  const filename = audioName ?? `${fileId}${defaultExt}`;
   let tmpPath: string | undefined;
   let waitingMessageId: number | undefined;
 
@@ -146,6 +126,18 @@ Transcript: ${transcript.text}
       }
     }
   }
+}
+
+bot.on("voice", (msg: Message) => {
+  const fileId = msg.voice?.file_id;
+  if (!fileId) return;
+  void processAudio(msg, fileId, ".ogg");
+});
+
+bot.on("audio", (msg: Message) => {
+  const fileId = msg.audio?.file_id;
+  if (!fileId) return;
+  void processAudio(msg, fileId, ".mp3");
 });
 
 bot.on("polling_error", (err: unknown) => {
