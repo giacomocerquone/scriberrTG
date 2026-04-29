@@ -2,8 +2,6 @@ import fs from "node:fs";
 import TelegramBot, { type Message } from "node-telegram-bot-api";
 
 import {
-  POLL_INTERVAL_MS,
-  POLL_TIMEOUT_MS,
   PROFILE_CACHE_TTL_MS,
   SCRIBERR_API_TOKEN,
   SCRIBERR_HOST_URL,
@@ -88,18 +86,14 @@ async function processAudio(msg: Message, fileId: string, defaultExt: string): P
       message_id: waiting.message_id,
     });
 
-    const result = await scriberr.waitForTranscript({
-      id,
-      pollIntervalMs: POLL_INTERVAL_MS,
-      pollTimeoutMs: POLL_TIMEOUT_MS,
-    });
+    await scriberr.waitForTranscriptSse({ id, timeoutMs: 10 * 60 * 1000 });
 
-    const transcript = JSON.parse(result.transcript) as { text: string };
+    const transcriptResult = await scriberr.getTranscript(id);
 
     const messageText = `
 Duration: ${msg.voice?.duration}s
 
-Transcript: ${transcript.text}
+Transcript: ${transcriptResult.transcript.text}
 `;
 
     await bot.editMessageText(messageText, {

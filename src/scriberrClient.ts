@@ -1,14 +1,11 @@
 import fs from "node:fs";
 import axios, { type AxiosInstance } from "axios";
 import FormData from "form-data";
+import { EventSource } from "eventsource";
 
 function normalizeBaseUrl(hostUrl: string): string {
   const trimmed = hostUrl.replace(/\/+$/, "");
   return `${trimmed}/api/v1`;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms));
 }
 
 type AnyObject = Record<string, unknown>;
@@ -33,21 +30,80 @@ export type TranscriptionResult = {
   transcriptPayload?: unknown;
 };
 
-type JobStatus = "uploaded" | "pending" | "processing" | "completed" | "failed";
-
 export class ScriberrClient {
   private http: AxiosInstance;
+  private baseUrl: string;
+  private apiToken: string;
 
   constructor(opts: { hostUrl: string; apiToken: string }) {
+    this.baseUrl = normalizeBaseUrl(opts.hostUrl);
+    this.apiToken = opts.apiToken;
     this.http = axios.create({
-      baseURL: normalizeBaseUrl(opts.hostUrl),
+      baseURL: this.baseUrl,
       timeout: 60_000,
       headers: {
-        Authorization: `Bearer ${opts.apiToken}`,
         "X-API-Key": opts.apiToken,
       },
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
+    });
+  }
+
+  async waitForTranscriptSse(opts: { id: string; timeoutMs: number }): Promise<void> {
+    const url = `${this.baseUrl}/events/?job_id=${encodeURIComponent(opts.id)}`;
+
+    await new Promise<void>((resolve, reject) => {
+      const es = new EventSource(url, {
+        fetch: (input, init) =>
+          fetch(input, {
+            ...init,
+            headers: {
+              ...init.headers,
+              "X-API-Key": this.apiToken,
+            },
+          }),
+      });
+
+      const timeout = setTimeout(() => {
+        es.close();
+        reject(
+          new Error(`Timed out waiting for SSE job update (${opts.id}) after ${opts.timeoutMs}ms`),
+        );
+      }, opts.timeoutMs);
+
+      function cleanup() {
+        clearTimeout(timeout);
+        es.close();
+      }
+
+      es.onmessage = (evt) => {
+        try {
+          const data = JSON.parse(String(evt.data)) as AnyObject;
+          if (data.type === "job_update") {
+            const payload = (data.payload ?? {}) as AnyObject;
+            const jobId = payload.job_id as string | undefined;
+            const status = payload.status as string | undefined;
+            if (jobId !== opts.id) return;
+            if (status === "completed") {
+              cleanup();
+              resolve();
+            }
+            if (status === "failed") {
+              cleanup();
+              reject(
+                new Error(`Transcription failed (${opts.id}) via SSE: ${JSON.stringify(payload)}`),
+              );
+            }
+          }
+        } catch (_e) {
+          // ignore malformed frames
+        }
+      };
+
+      es.onerror = () => {
+        cleanup();
+        reject(new Error("SSE connection error"));
+      };
     });
   }
 
@@ -87,80 +143,8 @@ export class ScriberrClient {
     return Array.isArray(data) ? (data as TranscriptionProfile[]) : [];
   }
 
-  async getJobStatus(id: string): Promise<unknown> {
-    const res = await this.http.get(`/transcription/${encodeURIComponent(id)}/status`);
-    return res.data;
-  }
-
-  async getTranscript(id: string): Promise<unknown> {
+  async getTranscript(id: string): Promise<{ transcript: { text: string } }> {
     const res = await this.http.get(`/transcription/${encodeURIComponent(id)}/transcript`);
     return res.data;
-  }
-
-  async waitForTranscript(opts: {
-    id: string;
-    pollIntervalMs: number;
-    pollTimeoutMs: number;
-  }): Promise<TranscriptionResult> {
-    const started = Date.now();
-    while (true) {
-      if (Date.now() - started > opts.pollTimeoutMs) {
-        throw new Error(
-          `Timed out waiting for transcription (${opts.id}) after ${opts.pollTimeoutMs}ms`,
-        );
-      }
-
-      let status: unknown;
-      try {
-        status = await this.getJobStatus(opts.id);
-      } catch (e: unknown) {
-        const maybeAxios = e as { response?: { status?: number } } | null;
-        const code = maybeAxios?.response?.status;
-        if (code === 404) {
-          await sleep(opts.pollIntervalMs);
-          continue;
-        }
-        throw e;
-      }
-
-      const st = status as AnyObject;
-      const state = (st.status as unknown) ?? (st.state as unknown) ?? (st.job_status as unknown);
-      const normalized = (typeof state === "string" ? state.toLowerCase() : state) as
-        | JobStatus
-        | unknown;
-
-      if (normalized === "failed") {
-        throw new Error(`Transcription failed (${opts.id}): ${JSON.stringify(status)}`);
-      }
-
-      if (normalized === "completed") {
-        const embedded = st.transcript as unknown;
-        if (typeof embedded === "string" && embedded.trim())
-          return { id: opts.id, transcript: embedded, status };
-        try {
-          const transcriptPayload = await this.getTranscript(opts.id);
-          const tp = transcriptPayload as AnyObject;
-          const text =
-            (tp.text as unknown) ??
-            (tp.transcript as unknown) ??
-            (tp.result as unknown) ??
-            ((tp.data as AnyObject | undefined)?.text as unknown);
-
-          if (typeof text === "string" && text.trim()) {
-            return { id: opts.id, transcript: text, status, transcriptPayload };
-          }
-          return {
-            id: opts.id,
-            transcript: JSON.stringify(transcriptPayload),
-            status,
-            transcriptPayload,
-          };
-        } catch {
-          return { id: opts.id, transcript: JSON.stringify(status), status };
-        }
-      }
-
-      await sleep(opts.pollIntervalMs);
-    }
   }
 }

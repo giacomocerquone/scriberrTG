@@ -7,8 +7,7 @@ Telegram bot (polling) that accepts audio/voice/documents and sends them to Scri
 - **`TELEGRAM_BOT_TOKEN`**: Telegram bot token
 - **`SCRIBERR_API_TOKEN`**: Scriberr API token (API key/bearer)
 - **`SCRIBERR_HOST_URL`**: Scriberr host URL (example: `http://scriberr-api:8080`)
-- **`POLL_INTERVAL_MS`** (optional): status polling interval (default `2500`)
-- **`POLL_TIMEOUT_MS`** (optional): max wait for transcription (default `600000`)
+- **`SSE_TIMEOUT_MS`** (optional): max wait for server-sent events (default `600000`)
 
 ### Run with Docker Compose
 
