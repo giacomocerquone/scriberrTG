@@ -22,5 +22,6 @@ function optional(name: string, fallback: string): string {
 export const TELEGRAM_BOT_TOKEN = required("TELEGRAM_BOT_TOKEN");
 export const SCRIBERR_API_TOKEN = required("SCRIBERR_API_TOKEN");
 export const SCRIBERR_HOST_URL = required("SCRIBERR_HOST_URL");
+export const SSE_TIMEOUT_MS = Number(optional("SSE_TIMEOUT_MS", String(10 * 60 * 1000)));
 
 export const PROFILE_CACHE_TTL_MS = Number(optional("PROFILE_CACHE_TTL_MS", String(5 * 60 * 1000)));
