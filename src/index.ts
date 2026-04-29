@@ -1,9 +1,20 @@
 import fs from "node:fs";
 import TelegramBot, { type Message } from "node-telegram-bot-api";
 
-import { POLL_INTERVAL_MS, POLL_TIMEOUT_MS, SCRIBERR_API_TOKEN, SCRIBERR_HOST_URL, TELEGRAM_BOT_TOKEN } from "./env";
+import {
+  POLL_INTERVAL_MS,
+  POLL_TIMEOUT_MS,
+  SCRIBERR_API_TOKEN,
+  SCRIBERR_HOST_URL,
+  TELEGRAM_BOT_TOKEN,
+} from "./env";
 import { ScriberrClient } from "./scriberrClient";
-import { detectTelegramFileId, downloadTelegramFile, incomingFilenameOrFileId, looksLikeAudioDocument } from "./telegramFile";
+import {
+  detectTelegramFileId,
+  downloadTelegramFile,
+  incomingFilenameOrFileId,
+  looksLikeAudioDocument,
+} from "./telegramFile";
 
 const scriberr = new ScriberrClient({ hostUrl: SCRIBERR_HOST_URL, apiToken: SCRIBERR_API_TOKEN });
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
@@ -18,7 +29,11 @@ function chunkText(text: string, maxLen = 3800): string[] {
   return chunks;
 }
 
-async function safeSendMessage(chatId: number | string, text: string, replyToMessageId?: number): Promise<void> {
+async function safeSendMessage(
+  chatId: number | string,
+  text: string,
+  replyToMessageId?: number,
+): Promise<void> {
   let reply = replyToMessageId;
   for (const part of chunkText(text)) {
     // Telegram hard-limit is 4096; keep some buffer for formatting.
@@ -48,7 +63,7 @@ bot.on("message", async (msg: Message) => {
 
   try {
     await bot.sendMessage(chatId, "Received. Uploading to Scriberr and transcribing…", {
-      reply_to_message_id: messageId
+      reply_to_message_id: messageId,
     });
 
     tmpPath = await downloadTelegramFile(bot, fileId, filename);
@@ -59,7 +74,7 @@ bot.on("message", async (msg: Message) => {
     const result = await scriberr.waitForTranscript({
       id,
       pollIntervalMs: POLL_INTERVAL_MS,
-      pollTimeoutMs: POLL_TIMEOUT_MS
+      pollTimeoutMs: POLL_TIMEOUT_MS,
     });
 
     await safeSendMessage(chatId, `Transcript (id: ${id}):\n\n${result.transcript}`);
@@ -89,4 +104,3 @@ bot.on("polling_error", (err: unknown) => {
 
 // eslint-disable-next-line no-console
 console.log("scriberrTG bot started (polling)");
-

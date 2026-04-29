@@ -29,19 +29,22 @@ export class ScriberrClient {
       timeout: 60_000,
       headers: {
         Authorization: `Bearer ${opts.apiToken}`,
-        "X-API-Key": opts.apiToken
+        "X-API-Key": opts.apiToken,
       },
       maxContentLength: Infinity,
-      maxBodyLength: Infinity
+      maxBodyLength: Infinity,
     });
   }
 
-  async submitQuickTranscription(opts: { filePath: string; filename: string }): Promise<{ id: string; raw: unknown }> {
+  async submitQuickTranscription(opts: {
+    filePath: string;
+    filename: string;
+  }): Promise<{ id: string; raw: unknown }> {
     const form = new FormData();
     form.append("file", fs.createReadStream(opts.filePath), opts.filename);
 
     const res = await this.http.post("/transcription/quick", form, {
-      headers: form.getHeaders()
+      headers: form.getHeaders(),
     });
 
     const data: AnyObject = (res.data ?? {}) as AnyObject;
@@ -70,7 +73,9 @@ export class ScriberrClient {
     const started = Date.now();
     while (true) {
       if (Date.now() - started > opts.pollTimeoutMs) {
-        throw new Error(`Timed out waiting for transcription (${opts.id}) after ${opts.pollTimeoutMs}ms`);
+        throw new Error(
+          `Timed out waiting for transcription (${opts.id}) after ${opts.pollTimeoutMs}ms`,
+        );
       }
 
       let status: unknown;
@@ -129,7 +134,7 @@ export class ScriberrClient {
             id: opts.id,
             transcript: JSON.stringify(transcriptPayload),
             status,
-            transcriptPayload
+            transcriptPayload,
           };
         } catch {
           return { id: opts.id, transcript: JSON.stringify(status), status };
@@ -140,4 +145,3 @@ export class ScriberrClient {
     }
   }
 }
-
