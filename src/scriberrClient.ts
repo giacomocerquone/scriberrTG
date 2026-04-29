@@ -20,6 +20,8 @@ export type TranscriptionResult = {
   transcriptPayload?: unknown;
 };
 
+type JobStatus = "uploaded" | "pending" | "processing" | "completed" | "failed";
+
 export class ScriberrClient {
   private http: AxiosInstance;
 
@@ -36,27 +38,30 @@ export class ScriberrClient {
     });
   }
 
-  async submitQuickTranscription(opts: {
+  async submitTranscriptionJob(opts: {
     filePath: string;
     filename: string;
+    title?: string;
   }): Promise<{ id: string; raw: unknown }> {
     const form = new FormData();
-    form.append("file", fs.createReadStream(opts.filePath), opts.filename);
+    // Per Scriberr Swagger, /transcription/submit expects the file in `audio`.
+    form.append("audio", fs.createReadStream(opts.filePath), opts.filename);
+    if (opts.title) form.append("title", opts.title);
 
-    const res = await this.http.post("/transcription/quick", form, {
+    const res = await this.http.post("/transcription/submit", form, {
       headers: form.getHeaders(),
     });
 
     const data: AnyObject = (res.data ?? {}) as AnyObject;
     const id = (data.id ?? data.transcription_id ?? data.job_id) as string | undefined;
     if (!id) {
-      throw new Error(`Unexpected /transcription/quick response: ${JSON.stringify(data)}`);
+      throw new Error(`Unexpected /transcription/submit response: ${JSON.stringify(data)}`);
     }
     return { id, raw: data };
   }
 
-  async getQuickStatus(id: string): Promise<unknown> {
-    const res = await this.http.get(`/transcription/quick/${encodeURIComponent(id)}`);
+  async getJobStatus(id: string): Promise<unknown> {
+    const res = await this.http.get(`/transcription/${encodeURIComponent(id)}/status`);
     return res.data;
   }
 
@@ -80,7 +85,7 @@ export class ScriberrClient {
 
       let status: unknown;
       try {
-        status = await this.getQuickStatus(opts.id);
+        status = await this.getJobStatus(opts.id);
       } catch (e: unknown) {
         const maybeAxios = e as { response?: { status?: number } } | null;
         const code = maybeAxios?.response?.status;
@@ -92,32 +97,16 @@ export class ScriberrClient {
       }
 
       const st = status as AnyObject;
-      const progress = (st.progress ?? {}) as AnyObject;
-      const state =
-        (st.status as unknown) ??
-        (st.state as unknown) ??
-        (st.job_status as unknown) ??
-        (st.phase as unknown) ??
-        (progress.status as unknown);
+      const state = (st.status as unknown) ?? (st.state as unknown) ?? (st.job_status as unknown);
+      const normalized = (typeof state === "string" ? state.toLowerCase() : state) as JobStatus | unknown;
 
-      const normalized = typeof state === "string" ? state.toLowerCase() : state;
-
-      if (normalized === "failed" || normalized === "error" || normalized === "cancelled") {
+      if (normalized === "failed") {
         throw new Error(`Transcription failed (${opts.id}): ${JSON.stringify(status)}`);
       }
 
-      if (normalized === "completed" || normalized === "done" || normalized === "finished") {
-        const embedded =
-          (st.transcript as unknown) ??
-          (st.text as unknown) ??
-          (st.result as unknown) ??
-          ((st.data as AnyObject | undefined)?.transcript as unknown) ??
-          ((st.data as AnyObject | undefined)?.text as unknown);
-
-        if (typeof embedded === "string" && embedded.trim()) {
-          return { id: opts.id, transcript: embedded, status };
-        }
-
+      if (normalized === "completed") {
+        const embedded = st.transcript as unknown;
+        if (typeof embedded === "string" && embedded.trim()) return { id: opts.id, transcript: embedded, status };
         try {
           const transcriptPayload = await this.getTranscript(opts.id);
           const tp = transcriptPayload as AnyObject;

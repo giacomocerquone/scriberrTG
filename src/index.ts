@@ -16,7 +16,11 @@ import {
   looksLikeAudioDocument,
 } from "./telegramFile";
 
-const scriberr = new ScriberrClient({ hostUrl: SCRIBERR_HOST_URL, apiToken: SCRIBERR_API_TOKEN });
+const scriberr = new ScriberrClient({
+  hostUrl: SCRIBERR_HOST_URL,
+  apiToken: SCRIBERR_API_TOKEN,
+});
+
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
 
 function chunkText(text: string, maxLen = 3800): string[] {
@@ -67,8 +71,11 @@ bot.on("message", async (msg: Message) => {
     });
 
     tmpPath = await downloadTelegramFile(bot, fileId, filename);
-
-    const { id } = await scriberr.submitQuickTranscription({ filePath: tmpPath, filename });
+    const { id } = await scriberr.submitTranscriptionJob({
+      filePath: tmpPath,
+      filename,
+      title: filename,
+    });
     await bot.sendMessage(chatId, `Transcription started (id: ${id}). Waiting for result…`);
 
     const result = await scriberr.waitForTranscript({

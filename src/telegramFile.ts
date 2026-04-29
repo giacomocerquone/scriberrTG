@@ -1,8 +1,8 @@
-import axios from "axios";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import axios from "axios";
 import type TelegramBot from "node-telegram-bot-api";
 import type { Message } from "node-telegram-bot-api";
 
@@ -12,6 +12,10 @@ export function incomingFilenameOrFileId(message: Message, fileId: string): stri
 
   const audio = message.audio as { file_name?: string } | undefined;
   if (audio?.file_name) return audio.file_name;
+
+  // For voice notes Telegram typically doesn't provide a filename, but Scriberr (or its multipart parser)
+  // may infer media type from the extension / part content-type.
+  if (message.voice) return `${fileId}.ogg`;
 
   return fileId;
 }
