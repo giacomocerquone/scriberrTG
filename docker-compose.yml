@@ -12,9 +12,9 @@ services:
       # Optional:
       # SSE_TIMEOUT_MS: 600000
     networks:
-      - scriberr-default
+      - scriberr_default
 
 networks:
-  scriberr-default:
+  scriberr_default:
     external: true
 
