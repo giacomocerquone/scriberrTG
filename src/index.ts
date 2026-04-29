@@ -4,11 +4,12 @@ import TelegramBot, { type Message } from "node-telegram-bot-api";
 import {
   POLL_INTERVAL_MS,
   POLL_TIMEOUT_MS,
+  PROFILE_CACHE_TTL_MS,
   SCRIBERR_API_TOKEN,
   SCRIBERR_HOST_URL,
   TELEGRAM_BOT_TOKEN,
 } from "./env";
-import { ScriberrClient } from "./scriberrClient";
+import { ScriberrClient, type TranscriptionProfile } from "./scriberrClient";
 import {
   detectTelegramFileId,
   downloadTelegramFile,
@@ -22,6 +23,37 @@ const scriberr = new ScriberrClient({
 });
 
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
+
+type DefaultProfileCache = {
+  expiresAt: number;
+  profile: TranscriptionProfile;
+};
+
+let defaultProfileCache: DefaultProfileCache | null = null;
+let defaultProfileInFlight: Promise<TranscriptionProfile> | null = null;
+
+async function getDefaultProfileCached(): Promise<TranscriptionProfile> {
+  const now = Date.now();
+  if (defaultProfileCache && defaultProfileCache.expiresAt > now) {
+    return defaultProfileCache.profile;
+  }
+
+  if (defaultProfileInFlight) return await defaultProfileInFlight;
+
+  defaultProfileInFlight = (async () => {
+    const profiles = await scriberr.listProfiles();
+    const def = profiles.find((p) => p.is_default) ?? profiles[0];
+    if (!def) throw new Error("No transcription profiles found in Scriberr");
+    defaultProfileCache = { profile: def, expiresAt: now + PROFILE_CACHE_TTL_MS };
+    return def;
+  })();
+
+  try {
+    return await defaultProfileInFlight;
+  } finally {
+    defaultProfileInFlight = null;
+  }
+}
 
 function chunkText(text: string, maxLen = 3800): string[] {
   const chunks: string[] = [];
@@ -47,6 +79,21 @@ async function safeSendMessage(
   }
 }
 
+async function editOrSendLongText(opts: {
+  chatId: number | string;
+  messageId: number;
+  text: string;
+}): Promise<void> {
+  const parts = chunkText(opts.text, 3800);
+  const first = parts.shift() ?? "";
+  await bot.editMessageText(first, { chat_id: opts.chatId, message_id: opts.messageId });
+
+  for (const part of parts) {
+    // eslint-disable-next-line no-await-in-loop
+    await bot.sendMessage(opts.chatId, part);
+  }
+}
+
 function isAnyAudioLikeMessage(msg: Message): boolean {
   if (msg.voice || msg.audio) return true;
   if (looksLikeAudioDocument(msg)) return true;
@@ -64,19 +111,31 @@ bot.on("message", async (msg: Message) => {
 
   const filename = incomingFilenameOrFileId(msg, fileId);
   let tmpPath: string | undefined;
+  let waitingMessageId: number | undefined;
 
   try {
-    await bot.sendMessage(chatId, "Received. Uploading to Scriberr and transcribing…", {
+    const waiting = await bot.sendMessage(chatId, "Received. Uploading to Scriberr and transcribing…", {
       reply_to_message_id: messageId,
     });
+    waitingMessageId = waiting.message_id;
 
     tmpPath = await downloadTelegramFile(bot, fileId, filename);
+
+    const profile = await getDefaultProfileCached();
+    const params = profile.parameters ?? {};
     const { id } = await scriberr.submitTranscriptionJob({
       filePath: tmpPath,
       filename,
       title: filename,
+      model: params.model,
+      language: params.language,
+      device: params.device,
+      compute_type: params.compute_type,
     });
-    await bot.sendMessage(chatId, `Transcription started (id: ${id}). Waiting for result…`);
+    await bot.editMessageText(`Transcription started (id: ${id}). Waiting for result…`, {
+      chat_id: chatId,
+      message_id: waiting.message_id,
+    });
 
     const result = await scriberr.waitForTranscript({
       id,
@@ -84,14 +143,22 @@ bot.on("message", async (msg: Message) => {
       pollTimeoutMs: POLL_TIMEOUT_MS,
     });
 
-    await safeSendMessage(chatId, `Transcript (id: ${id}):\n\n${result.transcript}`);
+    await editOrSendLongText({
+      chatId,
+      messageId: waitingMessageId,
+      text: result.transcript,
+    });
   } catch (e: unknown) {
     const maybeAxios = e as { response?: { data?: unknown }; message?: string } | null;
     const msgText =
       maybeAxios?.response?.data != null
         ? `Error: ${JSON.stringify(maybeAxios.response.data)}`
         : `Error: ${maybeAxios?.message ?? String(e)}`;
-    await safeSendMessage(chatId, msgText, messageId);
+    if (waitingMessageId) {
+      await editOrSendLongText({ chatId, messageId: waitingMessageId, text: msgText });
+    } else {
+      await safeSendMessage(chatId, msgText, messageId);
+    }
   } finally {
     if (tmpPath) {
       try {

@@ -25,3 +25,5 @@ export const SCRIBERR_HOST_URL = required("SCRIBERR_HOST_URL");
 
 export const POLL_INTERVAL_MS = Number(optional("POLL_INTERVAL_MS", "2500"));
 export const POLL_TIMEOUT_MS = Number(optional("POLL_TIMEOUT_MS", String(10 * 60 * 1000)));
+
+export const PROFILE_CACHE_TTL_MS = Number(optional("PROFILE_CACHE_TTL_MS", String(5 * 60 * 1000)));

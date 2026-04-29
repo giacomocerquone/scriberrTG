@@ -12,6 +12,19 @@ function sleep(ms: number): Promise<void> {
 }
 
 type AnyObject = Record<string, unknown>;
+type WhisperXParams = {
+  model?: string;
+  language?: string;
+  device?: string;
+  compute_type?: string;
+};
+
+export type TranscriptionProfile = {
+  id?: string;
+  name?: string;
+  is_default?: boolean;
+  parameters?: WhisperXParams;
+};
 
 export type TranscriptionResult = {
   id: string;
@@ -42,11 +55,19 @@ export class ScriberrClient {
     filePath: string;
     filename: string;
     title?: string;
+    model?: string;
+    language?: string;
+    device?: string;
+    compute_type?: string;
   }): Promise<{ id: string; raw: unknown }> {
     const form = new FormData();
     // Per Scriberr Swagger, /transcription/submit expects the file in `audio`.
     form.append("audio", fs.createReadStream(opts.filePath), opts.filename);
     if (opts.title) form.append("title", opts.title);
+    if (opts.model) form.append("model", opts.model);
+    if (opts.language) form.append("language", opts.language);
+    if (opts.device) form.append("device", opts.device);
+    if (opts.compute_type) form.append("compute_type", opts.compute_type);
 
     const res = await this.http.post("/transcription/submit", form, {
       headers: form.getHeaders(),
@@ -58,6 +79,12 @@ export class ScriberrClient {
       throw new Error(`Unexpected /transcription/submit response: ${JSON.stringify(data)}`);
     }
     return { id, raw: data };
+  }
+
+  async listProfiles(): Promise<TranscriptionProfile[]> {
+    const res = await this.http.get("/profiles");
+    const data = res.data;
+    return Array.isArray(data) ? (data as TranscriptionProfile[]) : [];
   }
 
   async getJobStatus(id: string): Promise<unknown> {
