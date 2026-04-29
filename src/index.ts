@@ -55,45 +55,6 @@ async function getDefaultProfileCached(): Promise<TranscriptionProfile> {
   }
 }
 
-function chunkText(text: string, maxLen = 3800): string[] {
-  const chunks: string[] = [];
-  let i = 0;
-  while (i < text.length) {
-    chunks.push(text.slice(i, i + maxLen));
-    i += maxLen;
-  }
-  return chunks;
-}
-
-async function safeSendMessage(
-  chatId: number | string,
-  text: string,
-  replyToMessageId?: number,
-): Promise<void> {
-  let reply = replyToMessageId;
-  for (const part of chunkText(text)) {
-    // Telegram hard-limit is 4096; keep some buffer for formatting.
-    // eslint-disable-next-line no-await-in-loop
-    await bot.sendMessage(chatId, part, reply ? { reply_to_message_id: reply } : undefined);
-    reply = undefined;
-  }
-}
-
-async function editOrSendLongText(opts: {
-  chatId: number | string;
-  messageId: number;
-  text: string;
-}): Promise<void> {
-  const parts = chunkText(opts.text, 3800);
-  const first = parts.shift() ?? "";
-  await bot.editMessageText(first, { chat_id: opts.chatId, message_id: opts.messageId });
-
-  for (const part of parts) {
-    // eslint-disable-next-line no-await-in-loop
-    await bot.sendMessage(opts.chatId, part);
-  }
-}
-
 function isAnyAudioLikeMessage(msg: Message): boolean {
   if (msg.voice || msg.audio) return true;
   if (looksLikeAudioDocument(msg)) return true;
@@ -103,6 +64,11 @@ function isAnyAudioLikeMessage(msg: Message): boolean {
 bot.on("message", async (msg: Message) => {
   const chatId = msg.chat.id;
   const messageId = msg.message_id;
+
+  console.log("message", msg);
+
+  const file = await bot.getFile(msg.voice?.file_id ?? "");
+  console.log(file);
 
   if (!isAnyAudioLikeMessage(msg)) return;
 
@@ -114,9 +80,13 @@ bot.on("message", async (msg: Message) => {
   let waitingMessageId: number | undefined;
 
   try {
-    const waiting = await bot.sendMessage(chatId, "Received. Uploading to Scriberr and transcribing…", {
-      reply_to_message_id: messageId,
-    });
+    const waiting = await bot.sendMessage(
+      chatId,
+      "Received. Uploading to Scriberr and transcribing…",
+      {
+        reply_to_message_id: messageId,
+      },
+    );
     waitingMessageId = waiting.message_id;
 
     tmpPath = await downloadTelegramFile(bot, fileId, filename);
@@ -132,6 +102,7 @@ bot.on("message", async (msg: Message) => {
       device: params.device,
       compute_type: params.compute_type,
     });
+
     await bot.editMessageText(`Transcription started (id: ${id}). Waiting for result…`, {
       chat_id: chatId,
       message_id: waiting.message_id,
@@ -143,10 +114,17 @@ bot.on("message", async (msg: Message) => {
       pollTimeoutMs: POLL_TIMEOUT_MS,
     });
 
-    await editOrSendLongText({
-      chatId,
-      messageId: waitingMessageId,
-      text: result.transcript,
+    const transcript = JSON.parse(result.transcript) as { text: string };
+
+    const messageText = `
+Duration: ${msg.voice?.duration}s
+
+Transcript: ${transcript.text}
+`;
+
+    await bot.editMessageText(messageText, {
+      chat_id: chatId,
+      message_id: waiting.message_id,
     });
   } catch (e: unknown) {
     const maybeAxios = e as { response?: { data?: unknown }; message?: string } | null;
@@ -154,11 +132,11 @@ bot.on("message", async (msg: Message) => {
       maybeAxios?.response?.data != null
         ? `Error: ${JSON.stringify(maybeAxios.response.data)}`
         : `Error: ${maybeAxios?.message ?? String(e)}`;
-    if (waitingMessageId) {
-      await editOrSendLongText({ chatId, messageId: waitingMessageId, text: msgText });
-    } else {
-      await safeSendMessage(chatId, msgText, messageId);
-    }
+    await bot.sendMessage(
+      chatId,
+      msgText,
+      waitingMessageId ? { reply_to_message_id: waitingMessageId } : undefined,
+    );
   } finally {
     if (tmpPath) {
       try {

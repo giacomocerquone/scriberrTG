@@ -1,6 +1,6 @@
+import fs from "node:fs";
 import axios, { type AxiosInstance } from "axios";
 import FormData from "form-data";
-import fs from "node:fs";
 
 function normalizeBaseUrl(hostUrl: string): string {
   const trimmed = hostUrl.replace(/\/+$/, "");
@@ -125,7 +125,9 @@ export class ScriberrClient {
 
       const st = status as AnyObject;
       const state = (st.status as unknown) ?? (st.state as unknown) ?? (st.job_status as unknown);
-      const normalized = (typeof state === "string" ? state.toLowerCase() : state) as JobStatus | unknown;
+      const normalized = (typeof state === "string" ? state.toLowerCase() : state) as
+        | JobStatus
+        | unknown;
 
       if (normalized === "failed") {
         throw new Error(`Transcription failed (${opts.id}): ${JSON.stringify(status)}`);
@@ -133,7 +135,8 @@ export class ScriberrClient {
 
       if (normalized === "completed") {
         const embedded = st.transcript as unknown;
-        if (typeof embedded === "string" && embedded.trim()) return { id: opts.id, transcript: embedded, status };
+        if (typeof embedded === "string" && embedded.trim())
+          return { id: opts.id, transcript: embedded, status };
         try {
           const transcriptPayload = await this.getTranscript(opts.id);
           const tp = transcriptPayload as AnyObject;
