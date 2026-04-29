@@ -1,3 +1,11 @@
+import dotenv from "dotenv";
+
+// Load local `.env` for non-container development.
+// In Docker/Compose, env vars are typically injected, and `.env` may not exist in the image.
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
+
 function required(name: string): string {
   const v = process.env[name];
   if (!v) {

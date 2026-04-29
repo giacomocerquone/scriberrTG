@@ -12,13 +12,12 @@ Telegram bot (polling) that accepts audio/voice/documents and sends them to Scri
 
 ### Run with Docker Compose
 
-This compose file attaches to the external Docker network **`scriberr_default`** so you can reference Scriberr by container name.
+This compose file attaches to the external Docker network **`scriberr-default`** so you can reference Scriberr by container name.
 
 ```bash
-export TELEGRAM_BOT_TOKEN="..."
-export SCRIBERR_API_TOKEN="..."
-export SCRIBERR_HOST_URL="http://scriberr-api:8080"
-
+# Option A: create a local .env (recommended)
+cp .env.example .env
+# then edit .env
 docker compose up --build
 ```
 
@@ -26,6 +25,8 @@ docker compose up --build
 
 ```bash
 npm install
-TELEGRAM_BOT_TOKEN="..." SCRIBERR_API_TOKEN="..." SCRIBERR_HOST_URL="http://scriberr-api:8080" npm run dev
+cp .env.example .env
+# then edit .env
+npm run dev
 ```
 

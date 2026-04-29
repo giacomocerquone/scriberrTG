@@ -3,6 +3,8 @@ services:
     build: .
     container_name: scriberrtg
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       SCRIBERR_API_TOKEN: ${SCRIBERR_API_TOKEN}
@@ -11,9 +13,9 @@ services:
       # POLL_INTERVAL_MS: 2500
       # POLL_TIMEOUT_MS: 600000
     networks:
-      - scriberr_default
+      - scriberr-default
 
 networks:
-  scriberr_default:
+  scriberr-default:
     external: true
 
