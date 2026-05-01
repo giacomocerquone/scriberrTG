@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import pino from "pino";
 import TelegramBot, { type Message } from "node-telegram-bot-api";
 import PQueue from "p-queue";
 
@@ -10,6 +11,8 @@ import {
 } from "./env";
 import { ScriberrClient, type TranscriptionProfile } from "./scriberrClient";
 import { buildTelegramAudioFilename, downloadTelegramFile } from "./telegramFile";
+
+const logger = pino({ name: "scriberrTG" });
 
 const scriberr = new ScriberrClient({
   hostUrl: SCRIBERR_HOST_URL,
@@ -69,6 +72,7 @@ async function processAudio(msg: Message, fileId: string, defaultExt: string): P
         chat_id: chatId,
         message_id: waiting.message_id,
       });
+      logger.info(`Queued (position ${position}). Preparing…`);
 
       tmpPath = await downloadTelegramFile(bot, fileId, filename);
 
@@ -88,6 +92,7 @@ async function processAudio(msg: Message, fileId: string, defaultExt: string): P
         chat_id: chatId,
         message_id: waiting.message_id,
       });
+      logger.info(`Transcription started (id: ${id}). Waiting for result…`);
 
       await scriberr.waitForTranscriptSse({ id, timeoutMs: 10 * 60 * 1000 });
 
@@ -102,7 +107,12 @@ Transcript: ${transcriptResult.transcript.text}
         chat_id: chatId,
         message_id: waiting.message_id,
       });
+      logger.info(
+        { chatId, messageId: waiting.message_id },
+        "edited message with transcript result",
+      );
     } catch (e: unknown) {
+      logger.error({ err: e, chatId, messageId: waiting.message_id }, "processAudio failed");
       const maybeAxios = e as { response?: { data?: unknown }; message?: string } | null;
       const msgText =
         maybeAxios?.response?.data != null
@@ -125,24 +135,19 @@ Transcript: ${transcriptResult.transcript.text}
 }
 
 bot.on("voice", (msg: Message) => {
-  console.log(msg);
   const fileId = msg.voice?.file_id;
   if (!fileId) return;
   void processAudio(msg, fileId, ".ogg");
 });
 
 bot.on("audio", (msg: Message) => {
-  console.log(msg);
   const fileId = msg.audio?.file_id;
   if (!fileId) return;
   void processAudio(msg, fileId, ".mp3");
 });
 
 bot.on("polling_error", (err: unknown) => {
-  // eslint-disable-next-line no-console
-  const msg = (err as { message?: string } | null)?.message ?? err;
-  console.error("polling_error", msg);
+  logger.error({ err }, "polling_error");
 });
 
-// eslint-disable-next-line no-console
-console.log("scriberrTG bot started (polling)");
+logger.info("scriberrTG bot started (polling)");
