@@ -10,6 +10,8 @@
     "format": "biome format --write .",
     "check": "biome check --write .",
     "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "release": "sh -c 'npm version \"${1:-patch}\" && git push --follow-tags' _"
   },
   "dependencies": {
@@ -29,6 +31,7 @@
     "@types/node": "^24.3.0",
     "@types/node-telegram-bot-api": "^0.64.14",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.5"
   }
 }

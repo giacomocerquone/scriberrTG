@@ -1,7 +1,7 @@
 services:
   scriberrtg:
     container_name: scriberrtg
-    image: ghcr.io/scriberrtg/scriberrtg:${VERSION:-latest}
+    image: ghcr.io/giacomocerquone/scriberrtg:${VERSION:-latest}
     restart: unless-stopped
     environment:
       TELEGRAM_BOT_TOKEN: xxx
