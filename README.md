@@ -8,10 +8,11 @@ Telegram bot (polling) that accepts audio/voice/documents and sends them to Scri
 - **`SCRIBERR_API_TOKEN`**: Scriberr API token (API key/bearer)
 - **`SCRIBERR_HOST_URL`**: Scriberr host URL (example: `http://scriberr-api:8080`)
 - **`SSE_TIMEOUT_MS`** (optional): max wait for server-sent events (default `600000`)
+- **`PROFILE_CACHE_TTL_MS`** (optional): cache transcription profiles for this duration (default `600000`)
 
 ### Run with Docker Compose
 
-This compose file attaches to the external Docker network **`scriberr-default`** so you can reference Scriberr by container name.
+Make sure to set the environment variables for reaching Scriberr and Telegram APIs.
 
 ```bash
 # Option A: create a local .env (recommended)
