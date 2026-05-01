@@ -1,6 +1,6 @@
 {
   "name": "scriberrtg",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Telegram bot that forwards audio to Scriberr for transcription",
   "main": "dist/index.js",
   "scripts": {
@@ -9,7 +9,8 @@
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check --write .",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "release": "sh -c 'npm version \"${1:-patch}\" && git push --follow-tags' _"
   },
   "dependencies": {
     "axios": "^1.12.2",
