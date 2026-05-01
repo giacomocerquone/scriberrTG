@@ -1,0 +1,68 @@
+---
+description: scriberrTG — Telegram bot → Scriberr transcription; stack, layout, env, workflows
+alwaysApply: true
+---
+
+# Project context: scriberrTG
+
+## Purpose
+
+Node.js Telegram bot (long polling) that accepts **voice** and **audio** messages, downloads the file, submits it to a **Scriberr** instance for transcription, waits for completion via **Server-Sent Events (SSE)**, then edits the status message with duration and transcript text.
+
+## Stack
+
+- **Runtime**: Node.js, TypeScript (`tsc` → `dist/`)
+- **Telegram**: `node-telegram-bot-api` (polling)
+- **HTTP / upload**: `axios`, `form-data`
+- **SSE**: `eventsource` (custom `fetch` headers for `X-API-Key`)
+- **Queue**: `p-queue` (concurrency **1** — one job at a time)
+- **Logging**: `pino`
+- **Lint/format**: Biome
+- **Tests**: Vitest
+
+## Repository layout
+
+| Path | Role |
+|------|------|
+| `src/index.ts` | Bot wiring: handlers, queue, profile cache, orchestration |
+| `src/env.ts` | Env loading (`dotenv` in non-production), required vars, optional numeric defaults |
+| `src/scriberrClient.ts` | Scriberr REST client: profiles, submit multipart job, SSE wait, fetch transcript |
+| `src/telegramFile.ts` | Filename building (sanitize, timestamps), download file to temp via `getFileLink` |
+| `src/*.spec.ts` | Vitest unit tests |
+
+## Scriberr integration
+
+- Base URL: `{SCRIBERR_HOST_URL}` normalized to `{host}/api/v1`.
+- Auth: `X-API-Key` header (value from `SCRIBERR_API_TOKEN`).
+- Submit: `POST /transcription/submit` with file field **`audio`** (per Scriberr API).
+- Default transcription profile: listed via `GET /profiles`; prefers `is_default`, else first profile; cached for `PROFILE_CACHE_TTL_MS`.
+- Completion: `EventSource` on `/events/?job_id=…`, resolves on `job_update` with `status === "completed"`, rejects on `failed` or errors.
+
+## Environment variables
+
+Required:
+
+- `TELEGRAM_BOT_TOKEN`
+- `SCRIBERR_API_TOKEN`
+- `SCRIBERR_HOST_URL`
+
+Optional (see `src/env.ts`):
+
+- `SSE_TIMEOUT_MS` — parsed in env; wire into wait calls if extending timeout behavior
+- `PROFILE_CACHE_TTL_MS` — default profile cache TTL (default 5 minutes)
+
+Local dev: copy `.env.example` → `.env`. Docker: see `README.md` and compose network naming for Scriberr host.
+
+## Commands
+
+- `npm run dev` — `tsx watch src/index.ts`
+- `npm run build` / `npm start` — compile and run `dist/index.js`
+- `npm test` — Vitest once; `npm run test:watch` — watch mode
+- `npm run lint` / `npm run check` — Biome
+
+## Conventions for contributors
+
+- Prefer small, focused changes; match existing patterns (imports, logging, error handling in `processAudio`).
+- **Do not** remove the temp-file `unlink` in `finally` when touching the download path.
+- New features that talk to Scriberr should go through `ScriberrClient` rather than ad-hoc `axios` in `index.ts`.
+- Filename logic and Telegram download behavior belong in `telegramFile.ts` with tests in `telegramFile.spec.ts`.
