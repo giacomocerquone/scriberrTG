@@ -11,10 +11,5 @@ services:
       SCRIBERR_HOST_URL: ${SCRIBERR_HOST_URL}
       # Optional:
       # SSE_TIMEOUT_MS: 600000
-    networks:
-      - scriberr_default
-
-networks:
-  scriberr_default:
-    external: true
+      # PROFILE_CACHE_TTL_MS: 600000
 

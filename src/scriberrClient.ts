@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import axios, { type AxiosInstance } from "axios";
-import FormData from "form-data";
 import { EventSource } from "eventsource";
+import FormData from "form-data";
 
 function normalizeBaseUrl(hostUrl: string): string {
   const trimmed = hostUrl.replace(/\/+$/, "");

@@ -1,0 +1,13 @@
+services:
+  scriberrtg:
+    container_name: scriberrtg
+    image: ghcr.io/scriberrtg/scriberrtg:${VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      TELEGRAM_BOT_TOKEN: xxx
+      SCRIBERR_API_TOKEN: xxx
+      SCRIBERR_HOST_URL: http://localhost:8080
+      # Optional:
+      # SSE_TIMEOUT_MS: 600000
+      # PROFILE_CACHE_TTL_MS: 600000
+
