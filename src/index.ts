@@ -1,7 +1,7 @@
 import fs from "node:fs";
-import pino from "pino";
 import TelegramBot, { type Message } from "node-telegram-bot-api";
 import PQueue from "p-queue";
+import pino from "pino";
 
 import {
   PROFILE_CACHE_TTL_MS,
