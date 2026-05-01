@@ -12,7 +12,8 @@ Telegram bot (polling) that accepts audio/voice/documents and sends them to Scri
 
 ### Run with Docker Compose
 
-Make sure to set the environment variables for reaching Scriberr and Telegram APIs.
+Make sure to edit the docker-compose.dev.yml file to use the correct Scriberr's network name and container name.
+Example: `http://scriberr:8080` — run `docker network inspect scriberr_network` to see names.
 
 ```bash
 # Option A: create a local .env (recommended)
