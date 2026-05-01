@@ -22,7 +22,8 @@ function safeExt(ext: string | undefined, fallbackExt: string): string {
 export function buildTelegramAudioFilename(opts: BuildTelegramAudioFilenameOpts): string {
   const { msg, defaultExt } = opts;
 
-  const timestamp = format(new Date(), "yyyy-MM-dd HH-mm-ss");
+  const sentUnixSec = msg.forward_date ?? msg.date;
+  const timestamp = format(new Date(sentUnixSec * 1000), "yyyy-MM-dd HH-mm-ss");
   const prefix = "scriberrTG";
   const suffix = `m${msg.message_id}`;
 
