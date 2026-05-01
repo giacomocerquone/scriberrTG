@@ -9,7 +9,7 @@ import {
   TELEGRAM_BOT_TOKEN,
 } from "./env";
 import { ScriberrClient, type TranscriptionProfile } from "./scriberrClient";
-import { downloadTelegramFile } from "./telegramFile";
+import { buildTelegramAudioFilename, downloadTelegramFile } from "./telegramFile";
 
 const scriberr = new ScriberrClient({
   hostUrl: SCRIBERR_HOST_URL,
@@ -55,8 +55,7 @@ async function processAudio(msg: Message, fileId: string, defaultExt: string): P
   const chatId = msg.chat.id;
   const messageId = msg.message_id;
 
-  const audioName = (msg as unknown as { audio?: { file_name?: string } }).audio?.file_name;
-  const filename = audioName ?? `${fileId}${defaultExt}`;
+  const filename = buildTelegramAudioFilename({ msg, defaultExt });
 
   const waiting = await bot.sendMessage(chatId, "Queued…", {
     reply_to_message_id: messageId,
@@ -95,7 +94,7 @@ async function processAudio(msg: Message, fileId: string, defaultExt: string): P
       const transcriptResult = await scriberr.getTranscript(id);
 
       const messageText = `
-Duration: ${msg.voice?.duration}s
+Duration: ${msg.voice?.duration ?? msg.audio?.duration}s
   
 Transcript: ${transcriptResult.transcript.text}
   `;
@@ -126,12 +125,14 @@ Transcript: ${transcriptResult.transcript.text}
 }
 
 bot.on("voice", (msg: Message) => {
+  console.log(msg);
   const fileId = msg.voice?.file_id;
   if (!fileId) return;
   void processAudio(msg, fileId, ".ogg");
 });
 
 bot.on("audio", (msg: Message) => {
+  console.log(msg);
   const fileId = msg.audio?.file_id;
   if (!fileId) return;
   void processAudio(msg, fileId, ".mp3");
