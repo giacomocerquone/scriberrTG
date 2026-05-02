@@ -10,4 +10,5 @@ services:
       # Optional:
       # SSE_TIMEOUT_MS: 600000
       # PROFILE_CACHE_TTL_MS: 600000
+      # TELEGRAM_ALLOWED_USER_IDS: "123456789"
 

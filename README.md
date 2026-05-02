@@ -25,6 +25,7 @@ Telegram bot that accepts audio/voice/documents and sends them to [Scriberr](htt
 #### Optional:
 - **`SSE_TIMEOUT_MS`** (optional): max wait for server-sent events (default `600000`)
 - **`PROFILE_CACHE_TTL_MS`** (optional): cache transcription profiles for this duration (default `600000`)
+- **`TELEGRAM_ALLOWED_USER_IDS`** (optional): comma-separated Telegram user IDs; if set, only those users can use the bot. If unset or empty, anyone can use it. Useful for a public bot token that should only serve you.
 
 ## Installation
 

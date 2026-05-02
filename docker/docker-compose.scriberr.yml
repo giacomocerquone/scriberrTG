@@ -32,6 +32,11 @@ services:
       TELEGRAM_BOT_TOKEN: xxx
       SCRIBERR_API_TOKEN: xxx
       SCRIBERR_HOST_URL: http://scriberr:8080
+      # Optional:
+      # SSE_TIMEOUT_MS: 600000
+      # PROFILE_CACHE_TTL_MS: 600000
+      # TELEGRAM_ALLOWED_USER_IDS: "123456789"
+
     networks:
       - scriberr_stack
 
