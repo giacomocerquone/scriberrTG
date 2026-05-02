@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import TelegramBot, { type Message } from "node-telegram-bot-api";
 import PQueue from "p-queue";
 import pino from "pino";
@@ -12,6 +13,12 @@ import {
 } from "./env";
 import { ScriberrClient, type TranscriptionProfile } from "./scriberrClient";
 import { buildTelegramAudioFilename, downloadTelegramFile } from "./telegramFile";
+
+const APP_VERSION = (
+  JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8")) as {
+    version: string;
+  }
+).version;
 
 const logger = pino({ name: "scriberrTG" });
 
@@ -170,4 +177,4 @@ bot.on("polling_error", (err: unknown) => {
   logger.error({ err }, "polling_error");
 });
 
-logger.info("scriberrTG bot started (polling)");
+logger.info({ version: APP_VERSION }, "scriberrTG bot started (polling)");
