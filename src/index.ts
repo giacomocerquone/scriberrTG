@@ -7,6 +7,7 @@ import {
   PROFILE_CACHE_TTL_MS,
   SCRIBERR_API_TOKEN,
   SCRIBERR_HOST_URL,
+  TELEGRAM_ALLOWED_USER_IDS,
   TELEGRAM_BOT_TOKEN,
 } from "./env";
 import { ScriberrClient, type TranscriptionProfile } from "./scriberrClient";
@@ -134,13 +135,32 @@ Transcript: ${transcriptResult.transcript.text}
   });
 }
 
+function isAllowedSender(msg: Message): boolean {
+  if (TELEGRAM_ALLOWED_USER_IDS === null) return true;
+  const id = msg.from?.id;
+  if (id === undefined) {
+    logger.warn({ chatId: msg.chat.id }, "disallowed: message has no from id; ignoring");
+    return false;
+  }
+  if (!TELEGRAM_ALLOWED_USER_IDS.has(id)) {
+    logger.warn(
+      { userId: id, chatId: msg.chat.id },
+      "disallowed user attempted to use the bot (not in TELEGRAM_ALLOWED_USER_IDS)",
+    );
+    return false;
+  }
+  return true;
+}
+
 bot.on("voice", (msg: Message) => {
+  if (!isAllowedSender(msg)) return;
   const fileId = msg.voice?.file_id;
   if (!fileId) return;
   void processAudio(msg, fileId, ".ogg");
 });
 
 bot.on("audio", (msg: Message) => {
+  if (!isAllowedSender(msg)) return;
   const fileId = msg.audio?.file_id;
   if (!fileId) return;
   void processAudio(msg, fileId, ".mp3");
