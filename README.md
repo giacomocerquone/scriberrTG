@@ -1,3 +1,18 @@
+<h1 align="center">
+  <br>
+  <img src="assets/logo.png" alt="scriberrTG">
+</h1>
+<p align="center">
+  <a href="#scriberrtg">Overview</a> •
+  <a href="#environment-variables">Environment</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#docker-compose-development">Docker</a> •
+  <a href="#local-development">Local development</a> •
+  <a href="#releasing">Releasing</a>
+</p>
+
+---
+
 ## scriberrTG
 
 Telegram bot that accepts audio/voice/documents and sends them to [Scriberr](https://github.com/rishikanthc/scriberr) for transcription and sends the transcription back to the user.
