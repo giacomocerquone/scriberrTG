@@ -51,4 +51,4 @@ Then run `npm run release:github` to create the GitHub release with auto-generat
 
 ### TODO
 
-- [ ] provide a web interface to configure the bot (especially the profile to use which is now cumbersome fetched and cached on startup with a pre-defined ttl) and see the logs
+- [ ] provide a web interface to configure the bot (especially the profile to use which is now fetched and cached on startup with a pre-defined ttl which is a bit weird) and see the logs
