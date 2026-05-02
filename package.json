@@ -12,7 +12,8 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "release": "sh -c 'npm version \"${1:-patch}\" && git push --follow-tags' _"
+    "release": "sh -c 'npm version \"${1:-patch}\" && git push --follow-tags' _",
+    "release:github": "gh release create \"v$npm_package_version\" --generate-notes"
   },
   "dependencies": {
     "axios": "^1.12.2",

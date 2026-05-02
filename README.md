@@ -44,3 +44,8 @@ cp .env.example .env
 npm run dev
 ```
 
+### Releasing
+
+Run `npm run release` to bump the version, commit, tag, and `git push --follow-tags`.
+Then run `npm run release:github` to create the GitHub release with auto-generated notes (requires the [GitHub CLI](https://cli.github.com/) and the new tag on GitHub).
+
