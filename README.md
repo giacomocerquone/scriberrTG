@@ -38,11 +38,11 @@ Then it's just a matter of running:
 docker compose up -f docker-compose.yml -d
 ```
 
-## Scriberr Configuration
+## Requirements
 
-Don't forget to create a *base profile* in Scriberr and to set "Automatic Transcription on Upload" to true.
-
-_This will be addressed in a future version of the bot where the job will be started by the bot itself._
+- A Scriberr instance running (and its API token)
+- A Telegram bot token (can be obtained from [@BotFather](https://t.me/BotFather))
+- A basic profile in Scriberr with "Automatic Transcription on Upload" set to true (The latter will be addressed in a future version of the bot where the job will be started by the bot itself.)
 
 ![Scriberr transcription settings](assets/scriberr-screenshot1.png)
 
