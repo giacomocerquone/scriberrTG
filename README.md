@@ -30,7 +30,7 @@ Telegram bot that accepts audio/voice/documents and sends them to [Scriberr](htt
 
 You can either run the project locally if node is available or use the released image through docker compose.
 For the latter, at each tagged release you can find a docker-compose.yml file you can copy and edit to your needs.<br/>
-Of course, you also need to have a Scriberr instance running. See the [docker folder](https://github.com/giacomocerquone/scriberrTG/tree/main/docker) for examples to help set up both ScriberrTG and Scriberr.
+Of course, you also need to have a Scriberr instance running. See the [docker folder](https://github.com/giacomocerquone/scriberrTG/tree/master/docker) for examples to help set up both ScriberrTG and Scriberr.
 
 Then it's just a matter of running:
 
