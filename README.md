@@ -40,6 +40,14 @@ Then it's just a matter of running:
 docker compose up -f docker-compose.yml -d
 ```
 
+## Configuration
+
+Don't forget to create a base profile in Scriberr and to set "automatic transcription on Upload" to true.
+
+_This will be addressed in a future version of the bot where the job will be started by the bot itself._
+
+![Scriberr transcription settings](assets/scriberr-screenshot1.png)
+
 ### Docker Compose development
 
 Make sure to edit the docker-compose.dev.yml file to use the correct Scriberr's network name and container name.
@@ -69,3 +77,4 @@ Then run `npm run release:github` to create the GitHub release with auto-generat
 ### TODO
 
 - [ ] provide a web interface to configure the bot (especially the profile to use which is now fetched and cached on startup with a pre-defined ttl which is a bit weird) and see the logs
+- [ ] add a stats functionality (once a year) to show some useful info
