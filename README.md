@@ -1,4 +1,5 @@
 <h1 align="center">
+  scriberrTG
   <br>
   <img src="assets/logo.png" alt="scriberrTG">
 </h1>
