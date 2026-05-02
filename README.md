@@ -49,3 +49,6 @@ npm run dev
 Run `npm run release` to bump the version, commit, tag, and `git push --follow-tags`.
 Then run `npm run release:github` to create the GitHub release with auto-generated notes (requires the [GitHub CLI](https://cli.github.com/) and the new tag on GitHub).
 
+### TODO
+
+- [ ] provide a web interface to configure the bot (especially the profile to use which is now cumbersome fetched and cached on startup with a pre-defined ttl) and see the logs
