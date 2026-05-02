@@ -14,8 +14,6 @@
 
 ---
 
-## scriberrTG
-
 Telegram bot that accepts audio/voice/documents and sends them to [Scriberr](https://github.com/rishikanthc/scriberr) for transcription and sends the transcription back to the user.
 
 ### Environment variables
