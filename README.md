@@ -40,9 +40,9 @@ Then it's just a matter of running:
 docker compose up -f docker-compose.yml -d
 ```
 
-## Configuration
+## Scriberr Configuration
 
-Don't forget to create a base profile in Scriberr and to set "automatic transcription on Upload" to true.
+Don't forget to create a *base profile* in Scriberr and to set "Automatic Transcription on Upload" to true.
 
 _This will be addressed in a future version of the bot where the job will be started by the bot itself._
 
